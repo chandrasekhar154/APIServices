@@ -24,8 +24,10 @@ app.use(bodyParser.urlencoded({
 app.use(cors());
 
 const Data_Reports = require('./Data_Reports/Main.Router.js');
+const karixTest = require('./karixTest/mainRouter.js');
 
 app.use('/api/' + versionId + '/Data_Reports', Data_Reports);
+app.use('/api/' + versionId + '/karixTest', karixTest);
 
 app.use((err, req, res, next) => {
 	res.status(err.status || 500);
