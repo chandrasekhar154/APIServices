@@ -75,6 +75,22 @@ module.exports = class MainLogic extends MySQLData {
 		}
     }
 
+    async receiveMessage() {
+        try {
+            let reqPrams = this.req.body;
+            let apiAction = "webhook";
+            const receiveMessage = await axios.post(configurationLogic.baseUrl + apiAction, reqPrams ,{
+                withCredentials: true,
+                auth: configurationLogic.authConfig
+            });
+            this.resp.json({'statusCode' : 200, 'data' : receiveMessage.data});
+            
+		}
+		catch (err) {
+			console.log("Error :-->.." + err);
+		}
+    }
+
 	static create(req, resp) {
 		let useCase = new MainLogic(req, resp);
 		return useCase;

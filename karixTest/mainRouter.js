@@ -53,4 +53,15 @@ router.post('/sendMessages', async(req, resp) => {
 	}
 });
 
+router.post('/receiveMessage', async(req, resp) => {
+	try {
+		let useCase = mainLogic.create(req, resp);
+		await useCase.receiveMessage();
+	}
+	catch (err) {
+		let code = err.code ? err.code : 400;
+		resp.json({ status : code, message : err.message});
+	}
+});
+
 module.exports = router;
