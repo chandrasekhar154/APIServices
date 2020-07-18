@@ -31,4 +31,15 @@ router.get('/getAccount', async(req, resp) => {
 	}
 });
 
+router.post('/createSubAccount', async(req, resp) => {
+	try {
+		let useCase = mainLogic.create(req, resp);
+		await useCase.createSubAccount();
+	}
+	catch (err) {
+		let code = err.code ? err.code : 400;
+		resp.json({ status : code, message : err.message});
+	}
+});
+
 module.exports = router;

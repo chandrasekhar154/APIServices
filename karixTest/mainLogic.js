@@ -1,4 +1,4 @@
-const connectionPool = require('./configLogic');
+const configurationLogic = require('./configLogic');
 const MySQLData = require('../Library/MySQLData');
 const axios = require('axios');
 const { response } = require('express');
@@ -9,7 +9,7 @@ const CircularJSON = require('circular-json');
 //   str
 // ;
 
-module.exports = class MainLogic extends MySQLData{
+module.exports = class MainLogic extends MySQLData {
 
 	constructor (req, resp) {
 		super();
@@ -31,25 +31,40 @@ module.exports = class MainLogic extends MySQLData{
             let reqPrams = {
                 "offset" : 0,
                 "limit" : 0,
-                "name" : "chandra154",
+                "name" : "",
                 "api-version" : "2.0"
             }
-            let authConfig = {
-                username: "15fab3de-4aa0-4638-9a5e-db0ffa769e69",
-                password: "985a91df-222f-469a-8d9d-a1a1e400ab5d"
-            }
-            const getAccount = await axios.get('https://api.karix.io/account', {
+            let apiAction = "account";
+            const getAccount = await axios.get(configurationLogic.baseUrl + apiAction, {
                 params: reqPrams,
                 withCredentials: true,
-                auth: authConfig
+                auth: configurationLogic.authConfig
             });
-            const str = CircularJSON.stringify(getAccount);
-            this.resp.json({'data' : JSON.parse(str)});
+            this.resp.json({'statusCode' : 200 , 'data' : getAccount.data})
+            
 		}
 		catch (err) {
 			console.log("Catch in Main Logic.. Hello world.." + err);
 		}
-	}
+    }
+    
+    async createSubAccount () {
+        try {
+            let reqPrams = this.req.body;
+            let apiAction = "account";
+            console.log(this.req.body);
+            const createSubAccount = await axios.post(configurationLogic.baseUrl + apiAction, reqPrams ,{
+                withCredentials: true,
+                auth: configurationLogic.authConfig
+            });
+            const str = CircularJSON.stringify(createSubAccount);
+            this.resp.json({'statusCode' : 200, 'data' : createSubAccount.data});
+            
+		}
+		catch (err) {
+			console.log("Catch in Main Logic.. Hello world.." + err);
+		}
+    }
 
 	static create(req, resp) {
 		let useCase = new MainLogic(req, resp);
