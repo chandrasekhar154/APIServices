@@ -52,17 +52,31 @@ module.exports = class MainLogic extends MySQLData {
         try {
             let reqPrams = this.req.body;
             let apiAction = "account";
-            console.log(this.req.body);
             const createSubAccount = await axios.post(configurationLogic.baseUrl + apiAction, reqPrams ,{
                 withCredentials: true,
                 auth: configurationLogic.authConfig
             });
-            const str = CircularJSON.stringify(createSubAccount);
             this.resp.json({'statusCode' : 200, 'data' : createSubAccount.data});
             
 		}
 		catch (err) {
 			console.log("Catch in Main Logic.. Hello world.." + err);
+		}
+    }
+
+    async sendMessages () {
+        try {
+            let reqPrams = this.req.body;
+            let apiAction = "message";
+            const sendMessages = await axios.post(configurationLogic.baseUrl + apiAction, reqPrams ,{
+                withCredentials: true,
+                auth: configurationLogic.authConfig
+            });
+            this.resp.json({'statusCode' : 200, 'data' : sendMessages.data});
+            
+		}
+		catch (err) {
+			console.log("Error :-->.." + err);
 		}
     }
 
