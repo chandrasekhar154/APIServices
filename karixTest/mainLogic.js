@@ -28,12 +28,7 @@ module.exports = class MainLogic extends MySQLData {
     
     async getAccount() {
 		try {
-            let reqPrams = {
-                "offset" : 0,
-                "limit" : 0,
-                "name" : "",
-                "api-version" : "2.0"
-            }
+            let reqPrams = this.req.body;
             let apiAction = "account";
             const getAccount = await axios.get(configurationLogic.baseUrl + apiAction, {
                 params: reqPrams,
