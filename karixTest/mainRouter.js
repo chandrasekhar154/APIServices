@@ -75,4 +75,15 @@ router.post('/createNewTemplate', async(req, resp) => {
 	}
 });
 
+router.get('/getListOfWhatsAppAccounts', async(req, resp) => {
+	try {
+		let useCase = mainLogic.create(req, resp);
+		await useCase.getListOfWhatsAppAccounts();
+	}
+	catch (err) {
+		let code = err.code ? err.code : 400;
+		resp.json({ status : code, message : err.message});
+	}
+});
+
 module.exports = router;

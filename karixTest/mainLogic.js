@@ -107,6 +107,23 @@ module.exports = class MainLogic extends MySQLData {
 		}
     }
 
+    async getListOfWhatsAppAccounts() {
+		try {
+            let reqPrams = this.req.body;
+            let apiAction = "whatsapp/account";
+            const getListOfWhatsAppAccounts = await axios.get(configurationLogic.baseUrl + apiAction, {
+                params: reqPrams,
+                withCredentials: true,
+                auth: configurationLogic.authConfig
+            });
+            this.resp.json({'statusCode' : 200 , 'data' : getListOfWhatsAppAccounts.data});
+            
+		}
+		catch (err) {
+			this.resp.json({ 'Err' : err});
+		}
+    }
+
 	static create(req, resp) {
 		let useCase = new MainLogic(req, resp);
 		return useCase;
