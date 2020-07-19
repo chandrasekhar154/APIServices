@@ -71,7 +71,8 @@ module.exports = class MainLogic extends MySQLData {
             
 		}
 		catch (err) {
-			console.log("Error :-->.." + err);
+            this.resp.json({ 'Err' : err});
+			//console.log("Error :-->.." + err);
 		}
     }
 
