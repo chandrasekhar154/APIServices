@@ -39,7 +39,7 @@ module.exports = class MainLogic extends MySQLData {
             
 		}
 		catch (err) {
-			console.log("Catch in Main Logic.. Hello world.." + err);
+			this.resp.json({ 'Err' : err});
 		}
     }
     
@@ -55,7 +55,7 @@ module.exports = class MainLogic extends MySQLData {
             
 		}
 		catch (err) {
-			console.log("Catch in Main Logic.. Hello world.." + err);
+            this.resp.json({ 'Err' : err});
 		}
     }
 
@@ -72,7 +72,6 @@ module.exports = class MainLogic extends MySQLData {
 		}
 		catch (err) {
             this.resp.json({ 'Err' : err});
-			//console.log("Error :-->.." + err);
 		}
     }
 
@@ -88,7 +87,23 @@ module.exports = class MainLogic extends MySQLData {
             
 		}
 		catch (err) {
-			console.log("Error :-->.." + err);
+			this.resp.json({ 'Err' : err});
+		}
+    }
+
+    async createNewTemplate() {
+        try {
+            let reqPrams = this.req.body;
+            let apiAction = "whatsapp/template";
+            const receiveMessage = await axios.post(configurationLogic.baseUrl + apiAction, reqPrams ,{
+                withCredentials: true,
+                auth: configurationLogic.authConfig
+            });
+            this.resp.json({'statusCode' : 200, 'data' : receiveMessage.data});
+            
+		}
+		catch (err) {
+			this.resp.json({ 'Err' : err});
 		}
     }
 
