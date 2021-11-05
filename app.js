@@ -4,6 +4,8 @@ const bodyParser = require('body-parser');
 const session = require('express-session');
 const uuId = require('node-uuid');
 const cors = require('cors');
+const yamlToJs = require('yamljs');
+const kariXYaml = require('./Documentation/swagger.yaml');
 
 const versionId = 'V1';
 

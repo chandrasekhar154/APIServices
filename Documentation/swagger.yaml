@@ -1,0 +1,2715 @@
+swagger: '2.0'
+
+info:
+  description: |
+    # Overview
+
+    Karix API lets you interact with the Karix platform using an omnichannel
+    messaging API. It also allows you to query your account, set up webhooks and
+    buy phone numbers.
+
+    # API Endpoint
+    https://api.karix.io/
+
+    # API and Clients Versioning
+
+    Karix APIs are versioned using the format vX.Y where X is the major version number
+    and Y is minor. All minor version releases are backwards compatible but major
+    releases are not, please be careful when upgrading.
+
+    Version header `api-version` is used by Karix platform to determine the version
+    of the API request. To use Karix API v2 you can send `api-version` as `"2.0"`.
+
+    If an API request does not contain `api-version` header then Karix platform uses
+    the pinned API version of the account as the default verison. Your account defaults
+    to the latest API version release at the time of signup. You can check the pinned
+    API version form the [dashboard](https://cloud.karix.io/dashboard).
+
+    Karix also provides Helper Libraries for all major languages. Release versions of
+    these libraries correspond to their API Version supported. Client version vX.Y.Z
+    supports API version vX.Y. Helper libraries are configured to send `api-version`
+    header based on the library version. When using official Karix helper libraries,
+    you dont need to concern yourself with pinned version. Using helper library of
+    latest version will give you access to latest features.
+
+    # Supported Channels
+
+    Karix omnichannel messaging API supports the following channels:
+      - sms
+      - whatsapp
+
+    ## SMS Channel
+    To send a message to one or more destinations over SMS channel set `channel` to `sms`
+    in the [Messaging API](#operation/sendMessage).
+
+    In trial mode, your account can only send messages to numbers within the sandbox.
+
+    ## Whatsapp Channel
+    To send a message to a destination over WhatsApp channel set `channel` to `whatsapp`
+    in the [Messaging API](#operation/sendMessage).
+
+    By default WhatsApp channel can only be used from within the sandbox. Contact [support](mailto:support@karix.io)
+    for sending message outside the sandbox and getting your own Whatsapp Business Account.
+
+    ### Message Types
+    Any messages you initiate over WhatsApp to end users must conform to a template
+    configured in WhatsApp. These messages are called "Notification Messages".
+    Both text and media content can be sent as a notification message. Please contact your
+    sales representative to get templates approved (or mail [sales](mailto:support@karix.io))
+
+    Any responses you receive from end users and all replies you send within 24 hours
+    of the last received response are called "Conversation Messages".
+
+    Both Notification and Conversation messages are priced differently, please refer
+    to the [pricing page](http://karix.io/messaging/pricing/) for more details.
+
+    #### Text Notification
+    To send a notification message with text content the `content.text` parameter in
+    [Send Message API](#operation/sendMessage) request needs to match an approved template pattern.
+
+    When using the sandbox for testing and development purposes, we have provided for
+    the following pre-approved templates for "Notification Messages":
+
+      - Your order * has been dispatched. Please expect delivery by *
+      - OTP requested by you on * is *
+      - Thank you for your payment of * * on *. Your transaction ID is *
+
+    You can replace `*` with any text of your choice.
+
+    #### Media Notification
+    To send a notification message with media content the `content.media.caption` parameter in
+    [Send Message API](#operation/sendMessage) request needs to match an approved template pattern.
+    Additionally, the `content.media.url` parameter should link to a media type which is approved
+    for that pattern. The following media types can be supported: image, video (only MP4), and document
+    (only PDF).
+
+    When using the sandbox for testing and development purposes, we have provided for
+    the following pre-approved templates for "Notification Messages":
+
+      - Caption: Your Ticket for movie * On * Time * Seat no : *
+        Media Type: image
+      - Caption: Hey here is the demo on steps to install *
+        Media Type: video
+      - Caption: Flight Confirmation for * on *
+        Media Type: document
+
+    You can replace `*` with any text of your choice.
+
+    ### Content Types
+    WhatsApp supports the following content types for outbound media messages:
+    | Content Type | File Format                          |
+    |:------------ |:------------------------------------ |
+    | audio        | AAC, M4A, AMR, MP3, OGG OPUS         |
+    | image        | JPG/JPEG, PNG                        |
+    | documents    | PDF, DOC, DOCX, PPT, PPTX, XLS, XLSX |
+    | video        | MP4, 3GPP                            |
+
+    Besides video content, it is also possible to send links to sites which support preview (like YouTube)
+    as a conversation text message. WhatsApp will render video preview depending on the
+    user's device.
+
+    For inbound media, Karix supports all file formats which can be sent using WhatsApp.
+    An incoming media message event will be reported to the Webhook attached to the Number
+    resource. You can read more about Karix event structure [here](#section/Events-and-Webhooks).
+
+    # Common Request Structures
+
+    All Karix APIs follow a common REST format with the following resources:
+      - account
+      - message
+      - webhook
+      - number
+
+    ## Creating a resource
+    To create a resource send a `POST` request with the desired parameters in a
+    JSON object to `/<resource>/` url. A successful response will contain the details
+    of the single resource created with HTTP status code `201 Created`.
+    Note: An exception to this is the `Create Message` API which is a bulk API and returns
+          a list of message records.
+
+    ## Fetching a resource
+    To fetch a resource by its Unique ID send a `GET` request to `/<resource>/<uid>/` where
+    `uid` is the Alphanumeric Unique ID of the resource. A successful response will contain
+    the details of the single resource fetched with HTTP status code `200 OK`
+
+    ## Editing a resource
+    To edit certain parameters of a resource send a `PATCH` request to `/<resource>/<uid>/`
+    where `uid` is the Alphanumeric Unique ID of the resource, with a JSON object containing
+    only the parameters which need to be updated. Edit resource APIs generally have no required
+    parameters. A successful response will contain all the details of the single resource
+    after editing.
+
+    ## Deleting a resource
+    To delete a resource send a `DELETE` request to `/<resource>/<uid>/` where `uid` is the
+    Alphanumeric Unique ID of the resource. A successful response will return HTTP status code
+    `204 No Content` with no body.
+
+    ## Fetching a list of resources
+    To fetch a list of resources send a `GET` request to `/<resource>/` with filters as GET
+    parameters. A successful response will contain a list of filtered paginated objects with
+    HTTP status code `200 OK`.
+
+    ### Pagination
+    Pagination for list APIs are controlled using GET parameters:
+      - `limit`: Number of objects to be returned
+      - `offset`: Number of objects to skip before collecting the output list.
+
+    # Common Response Structures
+
+    All Karix APIs follow a common respose structure.
+
+    ## Success Responses
+
+    ### Single Resource Response
+
+    Responses returning a single object will have the following keys
+    | Key           | Child Key     | Description                               |
+    |:------------- |:------------- |:----------------------------------------- |
+    | meta          |               | Meta Details about request and response   |
+    |               | request_uuid  | Unique request identifier                 |
+    | data          |               | Details of the object                     |
+
+    ### List Resource Response
+
+    Responses returning a list of objects will have the following keys
+    | Key           | Child Key     | Description                               |
+    |:------------- |:------------- |:----------------------------------------- |
+    | meta          |               | Meta Details about request and response   |
+    |               | request_uuid  | Unique request identifier                 |
+    |               | previous      | Link to the previous page of the list     |
+    |               | next          | Link to the next page of the list         |
+    |               | total         | Total number of objects over all pages    |
+    | objects       |               | List of objects with details              |
+
+    ## Error Responses
+
+    ### Validation Error Response
+
+    Responses for requests which failed due to validation errors will have the follwing keys:
+    | Key           | Child Key     | Description                                |
+    |:------------- |:------------- |:------------------------------------------ |
+    | meta          |               | Meta Details about request and response    |
+    |               | request_uuid  | Unique request identifier                  |
+    | error         |               | Details for the error                      |
+    |               | message       | Error message                              |
+    |               | param         | (Optional) parameter this error relates to |
+
+    Validation error responses will return HTTP Status Code `400 Bad Request`
+
+    ### Insufficient Balance Response
+
+    Some requests will require to consume account credits. In case of insufficient balance the following keys will be returned:
+    | Key           | Child Key     | Description                               |
+    |:------------- |:------------- |:----------------------------------------- |
+    | meta          |               | Meta Details about request and response   |
+    |               | request_uuid  | Unique request identifier                 |
+    | error         |               | Details for the error                     |
+    |               | message       | `Insufficient Balance`                    |
+
+    Insufficient balance response will return HTTP Status Code `402 Payment Required`
+
+    # Events and Webhooks
+
+    All asynchronous events generated by Karix platform follow a common structure:
+
+    | Key           | Child Key     | Description                                 |
+    |:------------- |:------------- |:------------------------------------------- |
+    | uid           |               | Alphanumeric unique ID of the event         |
+    | api_version   |               | 2.0                                         |
+    | type          |               | Type of the event.                          |
+    | data          |               | Details of the object attached to the event |
+
+    On an asynchronous event, an HTTP POST request is sent with the above JSON playload.
+
+    - For outbound messages, a message event is sent to events_url specified in
+      [Send Message API](#operation/sendMessage).
+    - For inbound messages, a message event is either sent to the `events_url`
+      of the Webhook attached to the [Number](#tag/Number) or the Sandbox URL
+      configured in the [Dashboard](https://cloud.karix.io/dashboard/#whatsapp-demo).
+
+    ## Events List
+
+    ### Outbound Message Status Update
+    `message` events are generated when a message status is changed to `sent`, `delivered`,
+    `undelivered` or `failed`.
+    These events are sent to `events_url` parameter of [Send Message](#operation/sendMessage) API
+
+    ### Inbound Message Received
+    `message` events are generated when a message is received on a [Number](#tag/Number) with
+    capability to receive messages on a channel.
+    These events are sent to the webhook attached to the phone number resource using
+    [Edit Number](#tag/Number) API
+
+    For inbound messages to WhatsApp Sandbox, `message` events are sent to Webhook URL
+    set on the [Dashboard](https://cloud.karix.io/dashboard/#whatsapp-demo).
+
+    ### Inbound Media Message Received
+    `message` events are generated when a message containing media content is received
+    on a [Number](#tag/Number) with capability to receive messages through a media capable
+    channel. An inbound message to WhatsApp Sandbox may also contain media.
+
+    The parameter `data.content.media.url` will link to the [Media URL](#operation/getMedia)
+    hosted with Karix from where you can download the media.
+  version: '2.0'
+  title: karix api
+  termsOfService: 'https://karix.io/messaging/terms-of-use/'
+  contact:
+    email: support@karix.io
+  license:
+    name: MIT
+    url: http://opensource.org/licenses/MIT
+
+host: api.karix.io
+basePath: /
+produces:
+  - application/json
+consumes:
+  - application/json
+
+tags:
+  - name: Accounts
+    description: |
+      Helps you manage your Account and its Subaccounts. Accounts have the
+      capability to create "subaccounts" under it.
+        - Subaccounts have full capabilities of an account but use credits from
+          their parent account. However, they generate their own usage report.
+        - Subaccounts cannot create subaccounts under it.
+        - An account (or a subaccount) cannot change its own account status
+          (enabled/disabled/suspended). A parent account can change the status of
+          a subaccount under it.
+        - An account can access and modify resources (like numbers, webhooks, messages
+          etc) of its subaccount
+        - A subaccount only has access to its own resources and not the resources of
+          other sibling subaccounts or its parent account.
+        - Account Credits are shown for parent account to all subaccounts.
+  - name: Message
+    description: Send message to a list of phone numbers.
+  - name: Media
+    description: Manage media files received by Karix
+  - name: Webhook
+    description: Create webhooks to receive messages
+  - name: NumberSearch
+    description: Search phone numbers from our inventory
+  - name: Number
+    description: Operations on the numbers in your account including renting
+  - name: Whatsapp
+    description: Configure your Whatsapp account, template, and profile
+  # - name: Document
+  #   description: Upload verification documents to our platform
+
+schemes:
+  - https
+
+securityDefinitions:
+  basicAuth:
+    type: basic
+    description: |
+      Karix API expects an account's `uid` as username,
+      and account's `token` as password. All Karix API
+      calls are executed in an account's context.
+
+      All Karix API calls are HTTPS only.
+security:
+  - basicAuth: []
+
+# Cant use this until golang yaml parser is fixed to handle anchors
+# TODO: Waiting on PR: https://github.com/go-yaml/yaml/pull/220
+# x-common-definitions:
+#   CommonResponses: &CommonResponses
+#     '401':
+#       $ref: '#/responses/UnauthenticatedError'
+#     '500':
+#       $ref: '#/responses/GenericError'
+#     '403':
+#       $ref: '#/responses/UnauthorizedError'
+
+paths:
+  '/account/':
+    parameters:
+      - $ref: '#/parameters/apiversion'
+    post:
+      tags:
+        - Accounts
+      summary: Create a new subaccount
+      description: Create a new subaccount under your account
+      operationId: createSubaccount
+      parameters:
+        - in: body
+          name: subaccount
+          description: Subaccount object
+          schema:
+            $ref: '#/definitions/CreateAccount'
+      responses:
+        '401':
+          $ref: '#/responses/UnauthenticatedError'
+        '403':
+          $ref: '#/responses/UnauthorizedError'
+        '400':
+          $ref: '#/responses/GenericError'
+        '500':
+          $ref: '#/responses/GenericError'
+        '201':
+          description: A subaccount object
+          schema:
+            type: object
+            properties:
+              meta:
+                $ref: '#/definitions/ObjectMetaResponse'
+              data:
+                $ref: '#/definitions/Account'
+    get:
+      tags:
+        - Accounts
+      summary: Get a list of accounts
+      description: >-
+        Get a list of details of all subaccounts, including the main account.
+        Accounts are sorted by last updated time.
+      operationId: getSubaccount
+      parameters:
+        - $ref: '#/parameters/offset'
+        - $ref: '#/parameters/limit'
+        - in: query
+          name: name
+          description: Filter by account name
+          type: string
+      responses:
+        '401':
+          $ref: '#/responses/UnauthenticatedError'
+        '403':
+          $ref: '#/responses/UnauthorizedError'
+        '500':
+          $ref: '#/responses/GenericError'
+        '200':
+          description: A list of account objects
+          schema:
+            type: object
+            properties:
+              objects:
+                type: array
+                items:
+                  $ref: '#/definitions/Account'
+              meta:
+                $ref: '#/definitions/ArrayMetaResponse'
+
+  '/account/{uid}/':
+    parameters:
+      - $ref: '#/parameters/apiversion'
+    get:
+      tags:
+        - Accounts
+      summary: Get details of an account
+      description: |
+        Get details of an account by its uid. Both main account and subaccounts
+        can be fetched using their uids.
+      operationId: getSubaccountById
+      parameters:
+        - in: path
+          name: uid
+          type: string
+          required: true
+          description: Alphanumeric ID of the subaccount to get.
+      responses:
+        '401':
+          $ref: '#/responses/UnauthenticatedError'
+        '403':
+          $ref: '#/responses/UnauthorizedError'
+        '404':
+          $ref: '#/responses/NotFound'
+        '500':
+          $ref: '#/responses/GenericError'
+        '200':
+          description: A subaccount object
+          schema:
+            type: object
+            properties:
+              meta:
+                $ref: '#/definitions/ObjectMetaResponse'
+              data:
+                $ref: '#/definitions/Account'
+    patch:
+      tags:
+        - Accounts
+      summary: Edit an account
+      description: |
+        Edit details of your account or its subaccount
+          - An account can only change the status of subaccounts under it.
+            It cant change its own status
+          - A parent account can edit its own details and the details of its subaccounts
+      operationId: patchSubaccount
+      parameters:
+        - in: path
+          name: uid
+          type: string
+          required: true
+          description: Alphanumeric ID of the account/subaccount to edit.
+        - in: body
+          name: subaccount
+          description: Subaccount object
+          schema:
+            $ref: '#/definitions/EditAccount'
+      responses:
+        '401':
+          $ref: '#/responses/UnauthenticatedError'
+        '403':
+          $ref: '#/responses/UnauthorizedError'
+        '404':
+          $ref: '#/responses/NotFound'
+        '500':
+          $ref: '#/responses/GenericError'
+        '200':
+          description: OK
+          schema:
+            type: object
+            properties:
+              meta:
+                $ref: '#/definitions/ObjectMetaResponse'
+              data:
+                $ref: '#/definitions/Account'
+
+  '/message/':
+    parameters:
+      - $ref: '#/parameters/apiversion'
+    post:
+      tags:
+        - Message
+      summary: Send a message to a list of destinations
+      description: |
+        Send a message to a list of destinations.
+          - A successful `202` response means that a message record has been created in Karix.
+            It does not mean that each message was successfully `queued`, `sent` or `delivered`.
+          - To know the status of the message check the parameter `status` of the message record.
+          - Message records might be created with a `failed` state due issues with Karix platform or
+            validation issues. Please check `error_code` to know the reason of the failure.
+            No balance is deducted and `total_cost` is always zero for such cases.
+          - Message records might be updated to state `undelivered`. This is due to carrier/operator
+            related issues. Please check `error_code` to know the reason of the failure.
+            Balance is still deducted for such cases.
+          - Since this is a bulk API the response structure follows the List Response format
+            rather than the Single Response format.
+          - Once queued, the messages for your account are dequeued and processed at a
+            rate set for your account (defaults to 5 messages per second).
+            Contact [sales](mailto:support@karix.io) to get your rate limit increased.
+          - For fair usage, there is no rate limiting for queueing messages using this
+            API. Dequeue rate would still be applicable as stated.
+      operationId: sendMessage
+      parameters:
+        - in: body
+          name: message
+          description: Create Message object
+          schema:
+            $ref: '#/definitions/CreateMessage'
+      responses:
+        '401':
+          $ref: '#/responses/UnauthenticatedError'
+        '403':
+          $ref: '#/responses/UnauthorizedError'
+        '400':
+          $ref: '#/responses/GenericError'
+        '402':
+          $ref: '#/responses/InsufficientBalanceError'
+        '500':
+          $ref: '#/responses/GenericError'
+        '202':
+          description: A list of message records
+          schema:
+            type: object
+            properties:
+              objects:
+                type: array
+                items:
+                  $ref: '#/definitions/Message'
+              meta:
+                $ref: '#/definitions/MetaResponseWithBalance'
+    get:
+      tags:
+        - Message
+      summary: Get list of messages sent or received
+      description: |
+        Get list of messages sent or received.
+        Sorted by descending order of `created_time`
+        (latest messages are first)
+      operationId: getMessage
+      parameters:
+        - in: query
+          name: direction
+          type: string
+          enum:
+            - inbound
+            - outbound
+          description: |
+            Message direction, inbound or outbound to filter on.
+            If not provided, the filter is not applied.
+        - in: query
+          name: account_uid
+          type: string
+          description: |
+            Filter the result list by the account which sent the message
+            - If not provided or `null` or empty string, no filter will be placed
+              and all the messages by the main account and its subaccounts are returned
+            - To get the list of messages sent by main account only, set `account_uid`
+              to main account's uid.
+        - in: query
+          name: status
+          type: string
+          enum:
+            - queued
+            - sent
+            - failed
+            - delivered
+            - read
+            - undelivered
+            - rejected
+          description: |
+            Filter the result on the basis of message status.
+        - in: query
+          name: created_time
+          description: |
+            Filter messages by their created timestamp
+          type: string
+          format: date-time
+        - in: query
+          name: created_time__gte
+          description: |
+            Filter messages created on or after this timestamp (created time greater than or equal)
+          type: string
+          format: date-time
+        - in: query
+          name: created_time__lte
+          description: |
+            Filter messages created on or before this timestamp (created time less than or equal)
+          type: string
+          format: date-time
+        - in: query
+          name: created_time__gt
+          description: |
+            Filter messages created after this timestamp (created time greater than)
+          type: string
+          format: date-time
+        - in: query
+          name: created_time__lt
+          description: |
+            Filter messages created before this timestamp (created time less than)
+          type: string
+          format: date-time
+        - in: query
+          name: source
+          description: |
+            Filter messages based on sender or source of the message
+          type: string
+        - in: query
+          name: destination
+          description: |
+            Filter messages based on receiver or destination of the message
+          type: string
+        - $ref: '#/parameters/offset'
+        - $ref: '#/parameters/limit'
+      responses:
+        '401':
+          $ref: '#/responses/UnauthenticatedError'
+        '403':
+          $ref: '#/responses/UnauthorizedError'
+        '500':
+          $ref: '#/responses/GenericError'
+        '200':
+          description: A list of Message objects
+          schema:
+            type: object
+            properties:
+              objects:
+                type: array
+                items:
+                  $ref: '#/definitions/Message'
+              meta:
+                $ref: '#/definitions/ArrayMetaResponse'
+                
+  '/message/{uid}/':
+    parameters:
+      - $ref: '#/parameters/apiversion'
+    get:
+      tags:
+        - Message
+      summary: Get message details by id.
+      description: Get message details by id.
+      operationId: getMessageById
+      parameters:
+        - in: path
+          name: uid
+          type: string
+          required: true
+          description: Alphanumeric ID of the message to get.
+      responses:
+        '401':
+          $ref: '#/responses/UnauthenticatedError'
+        '403':
+          $ref: '#/responses/UnauthorizedError'
+        '404':
+          $ref: '#/responses/NotFound'
+        '500':
+          $ref: '#/responses/GenericError'
+        '200':
+          description: Message data
+          schema:
+            type: object
+            properties:
+              meta:
+                $ref: '#/definitions/ObjectMetaResponse'
+              data:
+                $ref: '#/definitions/Message'
+    patch:
+      tags:
+        - Message
+      summary: Redact message record by uid.
+      description: |
+        Redact a message record by uid to remove all personal information:
+          - Remove message content attached to the message record
+          - Last five digits of source and destination will be scrubbed (replaced with *)
+      operationId: patchMessageById
+      parameters:
+        - in: path
+          name: uid
+          type: string
+          required: true
+          description: Alphanumeric ID of the message to edit.
+        - in: body
+          name: message
+          description: Edit Message object
+          schema:
+            $ref: '#/definitions/EditMessage'
+      responses:
+        '401':
+          $ref: '#/responses/UnauthenticatedError'
+        '403':
+          $ref: '#/responses/UnauthorizedError'
+        '400':
+          $ref: '#/responses/GenericError'
+        '404':
+          $ref: '#/responses/NotFound'
+        '500':
+          $ref: '#/responses/GenericError'
+        '200':
+          description: Message data
+          schema:
+            type: object
+            properties:
+              meta:
+                $ref: '#/definitions/ObjectMetaResponse'
+              data:
+                $ref: '#/definitions/Message'
+
+  '/media/{uid}/':
+    get:
+      tags:
+        - Media
+      summary: Get media by id
+      description: Download or Stream media by id
+      operationId: getMedia
+      parameters:
+        - in: path
+          name: uid
+          type: string
+          required: true
+          description: Alphanumeric ID of the media to get.
+      produces:
+        - application/octet-stream
+      responses:
+        '404':
+          $ref: '#/responses/NotFound'
+        '200':
+          description: Media file
+          schema:
+            type: file
+            
+  '/webhook/':
+    parameters:
+      - $ref: '#/parameters/apiversion'
+    post:
+      tags:
+        - Webhook
+      summary: Create webhooks to receive Message
+      description: >-
+        To receive messages you will need to setup a webhook. A webhook is then
+        attached to your phone number.
+      operationId: createWebhook
+      parameters:
+        - in: body
+          name: webhook
+          description: Create Webhook object
+          schema:
+            $ref: '#/definitions/CreateWebhook'
+      responses:
+        '401':
+          $ref: '#/responses/UnauthenticatedError'
+        '403':
+          $ref: '#/responses/UnauthorizedError'
+        '400':
+          $ref: '#/responses/GenericError'
+        '500':
+          $ref: '#/responses/GenericError'
+        '201':
+          description: Webhook data
+          schema:
+            type: object
+            properties:
+              meta:
+                $ref: '#/definitions/ObjectMetaResponse'
+              data:
+                $ref: '#/definitions/Webhook'
+    get:
+      tags:
+        - Webhook
+      summary: Get a list of your webhooks
+      description: Get a list of your webhooks
+      operationId: getWebhook
+      parameters:
+        - $ref: '#/parameters/offset'
+        - $ref: '#/parameters/limit'
+      responses:
+        '401':
+          $ref: '#/responses/UnauthenticatedError'
+        '403':
+          $ref: '#/responses/UnauthorizedError'
+        '500':
+          $ref: '#/responses/GenericError'
+        '200':
+          description: A subaccount object
+          schema:
+            type: object
+            properties:
+              objects:
+                type: array
+                items:
+                  $ref: '#/definitions/Webhook'
+              meta:
+                $ref: '#/definitions/ArrayMetaResponse'
+                
+  '/webhook/{uid}/':
+    parameters:
+      - $ref: '#/parameters/apiversion'
+    get:
+      tags:
+        - Webhook
+      summary: Get a webhook by ID
+      description: Get a webhook by ID
+      operationId: getWebhookById
+      parameters:
+        - in: path
+          name: uid
+          type: string
+          required: true
+          description: Alphanumeric ID of the webhook to get.
+      responses:
+        '401':
+          $ref: '#/responses/UnauthenticatedError'
+        '403':
+          $ref: '#/responses/UnauthorizedError'
+        '404':
+          $ref: '#/responses/NotFound'
+        '500':
+          $ref: '#/responses/GenericError'
+        '200':
+          description: Webhook data
+          schema:
+            type: object
+            properties:
+              meta:
+                $ref: '#/definitions/ObjectMetaResponse'
+              data:
+                $ref: '#/definitions/Webhook'
+    patch:
+      tags:
+        - Webhook
+      summary: Edit a webhook
+      description: Edit a webhook
+      operationId: patchWebhook
+      parameters:
+        - in: path
+          name: uid
+          type: string
+          required: true
+          description: Alphanumeric ID of the webhook to edit.
+        - in: body
+          name: webhook
+          description: Webhook object
+          schema:
+            $ref: '#/definitions/EditWebhook'
+      responses:
+        '401':
+          $ref: '#/responses/UnauthenticatedError'
+        '403':
+          $ref: '#/responses/UnauthorizedError'
+        '400':
+          $ref: '#/responses/GenericError'
+        '404':
+          $ref: '#/responses/NotFound'
+        '500':
+          $ref: '#/responses/GenericError'
+        '200':
+          description: Webhook data
+          schema:
+            type: object
+            properties:
+              meta:
+                $ref: '#/definitions/ObjectMetaResponse'
+              data:
+                $ref: '#/definitions/Webhook'
+    delete:
+      tags:
+        - Webhook
+      summary: Delete a webhook by ID
+      description: Delete a webhook by ID
+      operationId: deleteWebhookById
+      parameters:
+        - in: path
+          name: uid
+          type: string
+          required: true
+          description: Alphanumeric ID of the webhook to be deleted.
+      responses:
+        '401':
+          $ref: '#/responses/UnauthenticatedError'
+        '403':
+          $ref: '#/responses/UnauthorizedError'
+        '404':
+          $ref: '#/responses/NotFound'
+        '500':
+          $ref: '#/responses/GenericError'
+        '204':
+          $ref: '#/responses/DeleteResponse'
+            
+  '/number/':
+    parameters:
+      - $ref: '#/parameters/apiversion'
+    post:
+      tags:
+        - Number
+      summary: Rent a phone number
+      description: |
+        Rent a phone number.
+        Refer to Number Search API to find available phone numbers
+      operationId: rentNumber
+      parameters:
+        - in: body
+          name: number
+          description: Rent Details object
+          required: true
+          schema:
+            $ref: '#/definitions/RentNumber'
+      responses:
+        '401':
+          $ref: '#/responses/UnauthenticatedError'
+        '403':
+          $ref: '#/responses/UnauthorizedError'
+        '400':
+          $ref: '#/responses/GenericError'
+        '402':
+          $ref: '#/responses/InsufficientBalanceError'
+        '404':
+          $ref: '#/responses/NotFound'
+        '500':
+          $ref: '#/responses/GenericError'
+        '201':
+          description: Number data
+          schema:
+            type: object
+            properties:
+              meta:
+                $ref: '#/definitions/MetaResponseWithBalance'
+              data:
+                $ref: '#/definitions/AccountNumber'
+    get:
+      tags:
+        - Number
+      summary: Get details of all phone numbers linked to your account.
+      description: Get details of all phone numbers linked to your account.
+      operationId: getNumber
+      parameters:
+        - $ref: '#/parameters/offset'
+        - $ref: '#/parameters/limit'
+        - in: query
+          name: country
+          type: string
+          description: Filter by country ISO
+        - in: query
+          name: contains
+          type: string
+          description: Filter by numbers which contain this value
+        - in: query
+          name: number_type
+          description: 'Filter by number type: fixed, mobile, tollfree'
+          type: array
+          collectionFormat: csv
+          items:
+            type: string
+      responses:
+        '401':
+          $ref: '#/responses/UnauthenticatedError'
+        '403':
+          $ref: '#/responses/UnauthorizedError'
+        '500':
+          $ref: '#/responses/GenericError'
+        '200':
+          description: A list of Account Number objects
+          schema:
+            type: object
+            properties:
+              objects:
+                type: array
+                items:
+                  $ref: '#/definitions/AccountNumber'
+              meta:
+                $ref: '#/definitions/ArrayMetaResponse'
+                
+  '/number/{num}/':
+    parameters:
+      - $ref: '#/parameters/apiversion'
+    get:
+      tags:
+        - Number
+      summary: Get details of a number
+      description: Get details of a number
+      parameters:
+        - in: path
+          name: num
+          type: integer
+          required: true
+          description: Number for which details need to be fetched
+      responses:
+        '401':
+          $ref: '#/responses/UnauthenticatedError'
+        '403':
+          $ref: '#/responses/UnauthorizedError'
+        '404':
+          $ref: '#/responses/NotFound'
+        '500':
+          $ref: '#/responses/GenericError'
+        '200':
+          description: Number object
+          schema:
+            type: object
+            properties:
+              meta:
+                $ref: '#/definitions/ObjectMetaResponse'
+              data:
+                $ref: '#/definitions/AccountNumber'
+    patch:
+      tags:
+        - Number
+      summary: Edit phone number belonging to your account
+      description: Edit phone number belonging to your account
+      parameters:
+        - in: path
+          name: num
+          type: integer
+          required: true
+          description: Number which needs to be edited
+        - in: body
+          name: number
+          description: Account Number object
+          schema:
+            $ref: '#/definitions/EditAccountNumber'
+      responses:
+        '401':
+          $ref: '#/responses/UnauthenticatedError'
+        '403':
+          $ref: '#/responses/UnauthorizedError'
+        '404':
+          $ref: '#/responses/NotFound'
+        '500':
+          $ref: '#/responses/GenericError'
+        '200':
+          description: Number object
+          schema:
+            type: object
+            properties:
+              meta:
+                $ref: '#/definitions/ObjectMetaResponse'
+              data:
+                $ref: '#/definitions/AccountNumber'
+    delete:
+      tags:
+        - Number
+      summary: Unrent number from your account
+      description: Unrent number from your account
+      parameters:
+        - in: path
+          name: num
+          type: integer
+          required: true
+          description: Number which needs to be unrented
+      responses:
+        '401':
+          $ref: '#/responses/UnauthenticatedError'
+        '403':
+          $ref: '#/responses/UnauthorizedError'
+        '404':
+          $ref: '#/responses/NotFound'
+        '500':
+          $ref: '#/responses/GenericError'
+        '204':
+          $ref: '#/responses/DeleteResponse'
+            
+  '/numbersearch/':
+    parameters:
+      - $ref: '#/parameters/apiversion'
+    get:
+      tags:
+        - NumberSearch
+      summary: Query for phone numbers in our inventory.
+      description: Query for phone numbers in our inventory
+      parameters:
+        - $ref: '#/parameters/offset'
+        - $ref: '#/parameters/limit'
+        - in: query
+          name: country
+          type: string
+          default: US
+          description: |
+            Filter by country ISO. Only one country can be filtered at a time.
+            If no country is provided results for United States are returned by default.
+        - in: query
+          name: prefix
+          type: string
+          description: Filter by numbers with this prefix after country code
+        - in: query
+          name: contains
+          type: string
+          description: Filter by numbers which contain this value
+        - in: query
+          name: number_type
+          description: 'Filter by number type: fixed, mobile, tollfree'
+          type: array
+          collectionFormat: csv
+          items:
+            type: string
+      responses:
+        '401':
+          $ref: '#/responses/UnauthenticatedError'
+        '403':
+          $ref: '#/responses/UnauthorizedError'
+        '500':
+          $ref: '#/responses/GenericError'
+        '200':
+          description: A list of PhoneNumber objects
+          schema:
+            type: object
+            properties:
+              objects:
+                type: array
+                items:
+                  $ref: '#/definitions/PhoneNumber'
+              meta:
+                $ref: '#/definitions/ArrayMetaResponse'
+
+  '/whatsapp/account/':
+    parameters:
+      - $ref: '#/parameters/apiversion'
+    get:
+      tags:
+        - Whatsapp
+      summary: Get a list of your whatsapp accounts
+      description: |
+        Get a list of whatsapp accounts added to your Karix account.
+        Whatsapp accounts cannot be added using Karix API. Please contact sales@karix.io to your Whatsapp Account provisioned.
+      operationId: getWhatsappAccount
+      parameters:
+        - $ref: '#/parameters/offset'
+        - $ref: '#/parameters/limit'
+        - in: query
+          name: name
+          description: Filter by whatsapp account name
+          type: string
+        - in: query
+          name: karix_account_uid
+          description: Filter by karix account uid
+          type: string
+      responses:
+        '500':
+          $ref: '#/responses/GenericError'
+        '200':
+          description: A list of Whatsapp Account objects
+          schema:
+            type: object
+            properties:
+              objects:
+                type: array
+                items:
+                  $ref: '#/definitions/WhatsappAccount'
+              meta:
+                $ref: '#/definitions/ArrayMetaResponse'
+
+  '/whatsapp/account/{uid}/':
+    parameters:
+      - $ref: '#/parameters/apiversion'
+    get:
+      tags:
+        - Whatsapp
+      summary: Get a whatsapp account by Unique ID
+      description: Get a whatsapp account by Unique ID
+      operationId: getWhatsappAccountById
+      parameters:
+        - in: path
+          name: uid
+          type: string
+          required: true
+          description: Alphanumeric ID of the whatsapp account to get.
+      responses:
+        '500':
+          $ref: '#/responses/GenericError'
+        '200':
+          description: Whatsapp Account data
+          schema:
+            type: object
+            properties:
+              meta:
+                $ref: '#/definitions/MetaResponse'
+              data:
+                $ref: '#/definitions/WhatsappAccount'
+        '404':
+          $ref: '#/responses/NotFound'
+
+  '/whatsapp/template/':
+    parameters:
+      - $ref: '#/parameters/apiversion'
+    get:
+      tags:
+        - Whatsapp
+      summary: Get a list of your whatsapp templates
+      description: Get a list of your whatsapp templates for all whatsapp accounts
+      operationId: getWhatsappTemplate
+      parameters:
+        - $ref: '#/parameters/offset'
+        - $ref: '#/parameters/limit'
+        - in: query
+          name: whatsapp_account_uid
+          description: Filter by whatsapp account uid
+          type: string
+        - in: query
+          name: status
+          description: Filter by approval status
+          type: string
+        - in: query
+          name: category
+          description: Filter by template category
+          type: string
+        - in: query
+          name: name
+          description: Filter by template name
+          type: string
+        - in: query
+          name: language_code
+          description: Filter by language code
+          type: string
+      responses:
+        '500':
+          $ref: '#/responses/GenericError'
+        '200':
+          description: Whatsapp Template list
+          schema:
+            type: object
+            properties:
+              objects:
+                type: array
+                items:
+                  $ref: '#/definitions/WhatsappTemplate'
+              meta:
+                $ref: '#/definitions/ArrayMetaResponse'
+    post:
+      tags:
+        - Whatsapp
+      summary: Create whatsapp templates
+      description: Create a new template request with whatsapp
+      operationId: createWhatsappTemplate
+      parameters:
+        - in: body
+          name: template
+          description: Whatsapp Template Details object
+          required: true
+          schema:
+            $ref: '#/definitions/CreateWhatsappTemplate'
+      responses:
+        '500':
+          $ref: '#/responses/GenericError'
+        '400':
+          $ref: '#/responses/GenericError'
+        '201':
+          description: Whatsapp Template data
+          schema:
+            type: object
+            properties:
+              meta:
+                $ref: '#/definitions/ObjectMetaResponse'
+              data:
+                $ref: '#/definitions/WhatsappTemplate'
+  '/whatsapp/template/{uid}/':
+    parameters:
+      - $ref: '#/parameters/apiversion'
+    get:
+      tags:
+        - Whatsapp
+      summary: Get a whatsapp template by ID
+      description: Get a whatsapp template by ID
+      operationId: getWhatsappTemplateById
+      parameters:
+        - in: path
+          name: uid
+          type: string
+          required: true
+          description: Alphanumeric ID of the whatsapp template to get.
+      responses:
+        '500':
+          $ref: '#/responses/GenericError'
+        '200':
+          description: Whatsapp Template data
+          schema:
+            type: object
+            properties:
+              meta:
+                $ref: '#/definitions/MetaResponse'
+              data:
+                $ref: '#/definitions/WhatsappTemplate'
+        '404':
+          $ref: '#/responses/NotFound'
+  '/whatsapp/profile/photo/':
+    parameters:
+      - $ref: '#/parameters/apiversion'
+    get:
+      tags:
+        - Whatsapp
+      summary: Get a list of your whatsapp profile photos
+      description: Get a list of your whatsapp profile photos
+      operationId: getWhatsappProfilePhotos
+      parameters:
+        - $ref: '#/parameters/offset'
+        - $ref: '#/parameters/limit'
+        - in: query
+          name: number
+          description: Filter by whatsapp number
+          type: string
+      responses:
+        '500':
+          $ref: '#/responses/GenericError'
+        '200':
+          description: Whatsapp Profile Photo list
+          schema:
+            type: object
+            properties:
+              objects:
+                type: array
+                items:
+                  $ref: '#/definitions/WhatsappProfilePhoto'
+              meta:
+                $ref: '#/definitions/ArrayMetaResponse'
+  '/whatsapp/profile/photo/{num}/':
+    parameters:
+      - $ref: '#/parameters/apiversion'
+    get:
+      tags:
+        - Whatsapp
+      summary: Get whatsapp profile photo details of a number
+      description: Get whatsapp profile photo details of a number
+      operationId: getWhatsappProfilePhoto
+      parameters:
+        - in: path
+          name: num
+          type: integer
+          required: true
+          description: Whatsapp Number for which details need to be fetched
+      responses:
+        '401':
+          $ref: '#/responses/UnauthenticatedError'
+        '403':
+          $ref: '#/responses/UnauthorizedError'
+        '404':
+          $ref: '#/responses/NotFound'
+        '500':
+          $ref: '#/responses/GenericError'
+        '200':
+          description: Whatsapp Profile Photo object
+          schema:
+            type: object
+            properties:
+              meta:
+                $ref: '#/definitions/ObjectMetaResponse'
+              data:
+                $ref: '#/definitions/WhatsappProfilePhoto'
+    put:
+      tags:
+        - Whatsapp
+      summary: Upload a profile photo for a Whatsapp Number
+      description: Upload a profile photo for a Whatsapp Number
+      operationId: putWhatsappProfilePhoto
+      consumes:
+        - multipart/form-data
+      parameters:
+        - in: path
+          name: num
+          type: integer
+          required: true
+          description: Whatsapp Number for which details need to be fetched
+        - in: formData
+          name: file
+          type: file
+          description: The profile photo file to upload. Supports JPG and PNG formats.
+      responses:
+        '401':
+          $ref: '#/responses/UnauthenticatedError'
+        '403':
+          $ref: '#/responses/UnauthorizedError'
+        '404':
+          $ref: '#/responses/NotFound'
+        '400':
+          $ref: '#/responses/GenericError'
+        '500':
+          $ref: '#/responses/GenericError'
+        '200':
+          description: Whatsapp Profile Photo object
+          schema:
+            type: object
+            properties:
+              meta:
+                $ref: '#/definitions/ObjectMetaResponse'
+              data:
+                $ref: '#/definitions/WhatsappProfilePhoto'
+  '/whatsapp/profile/business/':
+    parameters:
+      - $ref: '#/parameters/apiversion'
+    get:
+      tags:
+        - Whatsapp
+      summary: Get a list of business details for your Whatsapp numbers
+      description: Get a list of business details for your Whatsapp numbers
+      operationId: getWhatsappProfileBusinessList
+      parameters:
+        - $ref: '#/parameters/offset'
+        - $ref: '#/parameters/limit'
+        - in: query
+          name: number
+          description: Filter by whatsapp number
+          type: string
+      responses:
+        '500':
+          $ref: '#/responses/GenericError'
+        '200':
+          description: Whatsapp Profile Business list
+          schema:
+            type: object
+            properties:
+              objects:
+                type: array
+                items:
+                  $ref: '#/definitions/WhatsappProfileBusiness'
+              meta:
+                $ref: '#/definitions/ArrayMetaResponse'
+  '/whatsapp/profile/business/{num}/':
+    parameters:
+      - $ref: '#/parameters/apiversion'
+    get:
+      tags:
+        - Whatsapp
+      summary: Get the business details for your Whatsapp number
+      description: Get the business details for your Whatsapp number
+      operationId: getWhatsappProfileBusiness
+      parameters:
+        - in: path
+          name: num
+          type: integer
+          required: true
+          description: Whatsapp Number for which details need to be fetched
+      responses:
+        '401':
+          $ref: '#/responses/UnauthenticatedError'
+        '403':
+          $ref: '#/responses/UnauthorizedError'
+        '404':
+          $ref: '#/responses/NotFound'
+        '500':
+          $ref: '#/responses/GenericError'
+        '200':
+          description: Whatsapp Profile Business object
+          schema:
+            type: object
+            properties:
+              meta:
+                $ref: '#/definitions/ObjectMetaResponse'
+              data:
+                $ref: '#/definitions/WhatsappProfileBusiness'
+    patch:
+      tags:
+        - Whatsapp
+      summary: Edit the business details for your Whatsapp number
+      description: Edit the business details for your Whatsapp number
+      operationId: patchWhatsappProfileBusiness
+      parameters:
+        - in: path
+          name: num
+          type: integer
+          required: true
+          description: Number for which details need to be patched
+        - in: body
+          name: details
+          description: Whatsapp Business object
+          schema:
+            $ref: '#/definitions/EditWhatsappProfileBusiness'
+      responses:
+        '401':
+          $ref: '#/responses/UnauthenticatedError'
+        '403':
+          $ref: '#/responses/UnauthorizedError'
+        '404':
+          $ref: '#/responses/NotFound'
+        '400':
+          $ref: '#/responses/GenericError'
+        '500':
+          $ref: '#/responses/GenericError'
+        '200':
+          description: OK
+          schema:
+            type: object
+            properties:
+              meta:
+                $ref: '#/definitions/ObjectMetaResponse'
+              data:
+                $ref: '#/definitions/WhatsappProfileBusiness'
+  '/whatsapp/profile/about/':
+    parameters:
+      - $ref: '#/parameters/apiversion'
+    get:
+      tags:
+        - Whatsapp
+      summary: Get a list of your whatsapp profile about texts
+      description: Get a list of your whatsapp profile about texts
+      operationId: getWhatsappProfileAboutList
+      parameters:
+        - $ref: '#/parameters/offset'
+        - $ref: '#/parameters/limit'
+        - in: query
+          name: number
+          description: Filter by whatsapp number
+          type: string
+        - in: query
+          name: text
+          description: Search about texts
+          type: string
+      responses:
+        '500':
+          $ref: '#/responses/GenericError'
+        '200':
+          description: Whatsapp Profile About list
+          schema:
+            type: object
+            properties:
+              objects:
+                type: array
+                items:
+                  $ref: '#/definitions/WhatsappProfileAbout'
+              meta:
+                $ref: '#/definitions/ArrayMetaResponse'
+  '/whatsapp/profile/about/{num}/':
+    parameters:
+      - $ref: '#/parameters/apiversion'
+    get:
+      tags:
+        - Whatsapp
+      summary: Get whatsapp profile about text of a number
+      description: Get whatsapp profile about text of a number
+      operationId: getWhatsappProfileAbout
+      parameters:
+        - in: path
+          name: num
+          type: integer
+          required: true
+          description: Number for which details need to be fetched
+      responses:
+        '401':
+          $ref: '#/responses/UnauthenticatedError'
+        '403':
+          $ref: '#/responses/UnauthorizedError'
+        '404':
+          $ref: '#/responses/NotFound'
+        '500':
+          $ref: '#/responses/GenericError'
+        '200':
+          description: Whatsapp Profile About object
+          schema:
+            type: object
+            properties:
+              meta:
+                $ref: '#/definitions/ObjectMetaResponse'
+              data:
+                $ref: '#/definitions/WhatsappProfileAbout'
+    patch:
+      tags:
+        - Whatsapp
+      summary: Edit Whatsapp About text of a number
+      description: Edit Whatsapp About text of a number
+      operationId: patchWhatsappProfileAbout
+      parameters:
+        - in: path
+          name: num
+          type: integer
+          required: true
+          description: Number for which details need to be fetched
+        - in: body
+          name: details
+          description: Whatsapp About object
+          schema:
+            $ref: '#/definitions/EditWhatsappProfileAbout'
+      responses:
+        '401':
+          $ref: '#/responses/UnauthenticatedError'
+        '403':
+          $ref: '#/responses/UnauthorizedError'
+        '404':
+          $ref: '#/responses/NotFound'
+        '400':
+          $ref: '#/responses/GenericError'
+        '500':
+          $ref: '#/responses/GenericError'
+        '200':
+          description: OK
+          schema:
+            type: object
+            properties:
+              meta:
+                $ref: '#/definitions/ObjectMetaResponse'
+              data:
+                $ref: '#/definitions/WhatsappProfileAbout'
+  
+  # '/document/':
+  #   parameters:
+  #     - $ref: '#/parameters/apiversion'
+  #   post:
+  #     tags:
+  #       - Document
+  #     summary: Upload a verification document
+  #     description: Upload a verification document
+  #     consumes:
+  #        - multipart/form-data
+  #     parameters:
+  #       - in: formData
+  #         name: document
+  #         type: file
+  #         required: true
+  #         description: The file to upload.
+  #       - in: formData
+  #         name: note
+  #         type: string
+  #         required: false
+  #         description: Description of file contents.
+  #       - in: formData
+  #         name: name
+  #         type: string
+  #         required: true
+  #         description: Name of file.
+  #     responses:
+  #       '401':
+  #         $ref: '#/responses/UnauthenticatedError'
+  #       '500':
+  #         $ref: '#/responses/GenericError'
+  #       '403':
+  #         $ref: '#/responses/UnauthorizedError'
+  #       '201':
+  #         description: Document object
+  #         schema:
+  #           type: object
+  #           properties:
+  #             meta:
+  #               $ref: '#/definitions/CreatedMetaResponse'
+  #             data:
+  #               $ref: '#/definitions/DocumentResponse'
+
+  #   get:
+  #     tags:
+  #       - Document
+  #     summary: Get a list of documents
+  #     description: Get a list of documents
+  #     responses:
+  #       '401':
+  #         $ref: '#/responses/UnauthenticatedError'
+  #       '500':
+  #         $ref: '#/responses/GenericError'
+  #       '403':
+  #         $ref: '#/responses/UnauthorizedError'
+  #       '200':
+  #         description: Document objects
+  #         schema:
+  #           type: object
+  #           properties:
+  #             objects:
+  #               type: array
+  #               items:
+  #                 $ref: '#/definitions/DocumentResponse'
+  #             meta:
+  #               $ref: '#/definitions/ArrayMetaResponse'
+  
+  # '/document/{uid}/':
+  #   parameters:
+  #     - $ref: '#/parameters/apiversion'
+  #   get:
+  #     tags:
+  #       - Document
+  #     summary: Get details of a single document
+  #     description: Get details of a single document
+  #     parameters:
+  #       - in: path
+  #         name: uid
+  #         type: string
+  #         required: true
+  #         description: Document ID
+  #     responses:
+  #       '401':
+  #         $ref: '#/responses/UnauthenticatedError'
+  #       '500':
+  #         $ref: '#/responses/GenericError'
+  #       '403':
+  #         $ref: '#/responses/UnauthorizedError'
+  #       '200':
+  #         description: Document objects
+  #         schema:
+  #           type: object
+  #           properties:
+  #             meta:
+  #               $ref: '#/definitions/MetaResponse'
+  #             data:
+  #               $ref: '#/definitions/DocumentResponse'
+  #       '404':
+  #         $ref: '#/responses/NotFound'
+  #   patch:
+  #     tags:
+  #       - Document
+  #     summary: Edit details of a document
+  #     description: Edit name and note of a document
+  #     parameters:
+  #       - in: path
+  #         name: uid
+  #         type: string
+  #         required: true
+  #         description: Document ID
+  #       - in: body
+  #         name: document
+  #         description: Document object
+  #         schema:
+  #           $ref: '#/definitions/DocumentPatch'
+  #     responses:
+  #       '401':
+  #         $ref: '#/responses/UnauthenticatedError'
+  #       '500':
+  #         $ref: '#/responses/GenericError'
+  #       '403':
+  #         $ref: '#/responses/UnauthorizedError'
+  #       '200':
+  #         description: Document object
+  #         schema:
+  #           type: object
+  #           properties:
+  #             meta:
+  #               $ref: '#/definitions/MetaResponse'
+  #             data:
+  #               $ref: '#/definitions/DocumentResponse'
+  #       '404':
+  #         $ref: '#/responses/NotFound'
+  #   delete:
+  #     tags:
+  #       - Document
+  #     summary: Delete a document
+  #     description: Delete a document
+  #     parameters:
+  #       - in: path
+  #         name: uid
+  #         type: string
+  #         required: true
+  #         description: Document ID
+  #     responses:
+  #       '401':
+  #         $ref: '#/responses/UnauthenticatedError'
+  #       '500':
+  #         $ref: '#/responses/GenericError'
+  #       '403':
+  #         $ref: '#/responses/UnauthorizedError'
+  #       '204':
+  #         $ref: '#/responses/DeleteResponse'
+  #       '404':
+  #         $ref: '#/responses/NotFound'
+
+parameters:
+  apiversion:
+    in: header
+    name: api-version
+    description: API Version. If not specified your pinned verison is used.
+    type: string
+    default: '2.0'
+  offset:
+    in: query
+    name: offset
+    type: integer
+    default: 0
+    description: >-
+      The number of items to skip before starting to collect the result
+      set.
+  limit:
+    in: query
+    name: limit
+    type: integer
+    default: 10
+    description: The numbers of items to return.
+
+responses:
+  UnauthenticatedError:
+    description: Authentication information is missing or invalid
+    headers:
+      WWW_Authenticate:
+        type: string
+  UnauthorizedError:
+    description: User not authorized or blocked
+    schema:
+      type: object
+      properties:
+        meta:
+          $ref: '#/definitions/MetaResponse'
+        error:
+          type: object
+          required:
+            - message
+          properties:
+            message:
+              type: string
+              example: Forbidden
+              description: Forbidden Message
+  NotFound:
+    description: Resource not found
+    schema:
+      type: object
+      properties:
+        meta:
+          $ref: '#/definitions/MetaResponse'
+        error:
+          type: object
+          required:
+            - message
+          properties:
+            message:
+              type: string
+              example: Not Found.
+              description: Error Message
+  InsufficientBalanceError:
+    description: Insufficient Balance Error
+    schema:
+      type: object
+      properties:
+        meta:
+          $ref: '#/definitions/MetaResponse'
+        error:
+          type: object
+          required:
+            - message
+          properties:
+            message:
+              type: string
+              example: Insufficient Balance
+              description: Insufficient Balance Message
+  GenericError:
+    description: Error
+    schema:
+      type: object
+      properties:
+        meta:
+          $ref: '#/definitions/MetaResponse'
+        error:
+          type: object
+          required:
+            - message
+          properties:
+            message:
+              type: string
+              example: Unknown Error
+              description: Error Message
+            param:
+              type: string
+              example: null
+              x-nullable: true
+              description: |
+                Parameter the error message is related to
+                `null` is the error is generic
+  DeleteResponse:
+    description: Deleted
+
+definitions:
+  CreateAccount:
+    type: object
+    required:
+      - name
+    properties:
+      name:
+        type: string
+        example: Beth Smith
+        description: |
+          Name of the account. Must be unique within the parent account.
+        maxLength: 200
+      status:
+        type: string
+        default: enabled
+        description: >
+          Status of your account. Possible values are:
+            - enabled: Account is ready to be used
+            - suspended: Account has been temporarily suspended
+            - disabled: Account has been permanently disabled and
+                      cannot be revived. All resources allocated
+                      to the subaccount like phonenumbers are also
+                      deleted.
+            `suspended` and `disabled` accounts cannot use Karix API. They will receive
+            `403 Forbidden` response.
+        enum:
+          - enabled
+          - suspended
+          - disabled
+  EditAccount:
+    type: object
+    properties:
+      name:
+        type: string
+        example: Beth Smith
+        description: |
+          Name of the account. Must be unique within the parent account.
+        maxLength: 200
+      status:
+        type: string
+        description: >
+          Status of your account. Possible values are:
+            - enabled: Account is ready to be used
+            - suspended: Account has been temporarily suspended
+            - disabled: Account has been permanently disabled and
+                      cannot be revived. All resources allocated
+                      to the subaccount like phonenumbers are also
+                      deleted.
+        enum:
+          - enabled
+          - suspended
+          - disabled
+  Account:
+    allOf:
+      - $ref: '#/definitions/EditAccount'
+      - type: object
+        properties:
+          uid:
+            type: string
+            description: >
+              Alphanumeric user identification.
+              Used as username for Basic Authentication
+            example: 7fea9708-ea28-42e9-871f-a07fe7cef72f
+          token:
+            type: string
+            description: >
+              Token password for this account.
+              Used as password in Basic Authentication
+            example: e664221d-4aed-415b-929b-7edf887e4680
+          is_parent:
+            type: boolean
+            example: false
+            description: >
+              There is generally only one parent account in list. Rest are child
+              subaccounts. Possible values:
+                - `true`: If the account is a parent account
+                - `false`: If the account is a subaccount of the parent account
+          created_time:
+            type: string
+            format: date-time
+            example: '2017-08-04T09:59:29.660Z'
+            description: Date when this account was created
+          updated_time:
+            type: string
+            format: date-time
+            example: '2017-08-05T09:59:29.660Z'
+            description: Date when this account was last updated
+          account_type:
+            type: string
+            enum:
+              - prepaid
+              - postpaid
+              - trial
+            example: prepaid
+            description: |
+              Signifies whether the account is prepaid, postpaid or trial
+          credit_balance:
+            type: string
+            format: number
+            example: '127.33'
+            description: |
+              Account's credit balance in US dollars.
+                - For postpaid accounts this value will be `null`.
+                - For subaccounts this value will reflect balance of parent account
+          auto_recharge:
+            type: boolean
+            example: false
+            description: |
+              Whether auto-recharge has been enabled.
+
+  CreateMessage:
+    type: object
+    required:
+      - source
+      - destination
+      - content
+    properties:
+      channel:
+        type: string
+        example: 'sms'
+        description: |
+          Channel to use to send message over
+          Supported Channels: sms, whatsapp
+        enum: ['sms', 'whatsapp']
+        default: 'sms'
+      source:
+        type: string
+        example: "+14154009186"
+        description: |
+          Sender ID for the message which will be displayed to the receiver. It
+          should follow specification E.164 with international calling codes.
+            - When sending a message to US/Canada, `source` must be a number
+              which belongs to your Karix Subaccount (or main account).
+            - When sending a message over `whatsapp` channel, `source` must be the
+              whatsapp sandbox number from your dashboard or a Whatsapp enabled number
+              added to your account.
+      destination:
+        type: array
+        minItems: 1
+        uniqueItems: true
+        items:
+          type: string
+          example: "+15623158625"
+        description: |
+          The destination numbers for the message.
+            - When sending a message over `whatsapp` channel, the `destination` array
+              must contain only one phone number.
+      content:
+        type: object
+        description: |
+          Content to be sent to the destinations.
+          - For channel `sms` only `text` content is supported
+          - For channel `whatsapp` one of either `text`, `location` or `media` is allowed
+        properties:
+          text:
+            type: string
+            example: Hey, Rick. It's Rick.
+            description: Text content to be sent to destinations
+            minLength: 1
+            maxLength: 4096
+          location:
+            type: object
+            required: ['longitude', 'latitude', 'label']
+            description: Location content to be sent to destinations
+            properties:
+              longitude:
+                type: string
+                format: number
+                example: '12.9716'
+                description: Longitude of the location to be sent
+              latitude:
+                type: string
+                format: number
+                example: '77.5946'
+                description: Latitude of the location to be sent
+              label:
+                type: string
+                example: 'Bangalore'
+                description: Label which will be attached as heading to the location
+              address:
+                type: string
+                example: 'Havoc!'
+                description: Address which will be attached to the location
+          media:
+            type: object
+            required: ['url']
+            description: Media content to be sent to destinations
+            properties:
+              url:
+                type: string
+                example: 'https://media.example.com/file'
+                description: |
+                  A publicly accessible url to the media file
+                  - The url must serve appropriate `Content-Length` and `Content-Type` headers
+                    for the file being sent.
+              caption:
+                type: string
+                example: your media file
+                description: A caption which will be added to the message containing the media
+      events_url:
+        type: string
+        example: 'https://events.example.com/message'
+        description: |
+          Status change events for the `queued` messages will be sent to `events_url`.
+            - Please read more about [Karix Events](#section/Events-and-Webhooks) structure.
+            - A message sent over `whatsapp` channel might generate a `read` event directly
+              and skip the `delivered` event. A message for which you receive a `read` event
+              should be considered `delivered` as well.
+  Message:
+    type: object
+    properties:
+      uid:
+        type: string
+        example: 5a507caf-0769-4914-a7f7-54f5a064b52a
+        description: Unique ID for a message sent or received
+      account_uid:
+        type: string
+        example: 5a507caf-0769-4914-a7f7-54f5a064b52a
+        description: Unique ID of Account which created this message
+      total_cost:
+        type: string
+        format: number
+        example: '0.0032'
+        description: |
+          Total cost deducted from your credits for this message
+          - `total_cost` will reflect refunds for this message. If there was a complete
+            refund, the `total_cost` will be zero.
+      refund:
+        type: string
+        format: number
+        example: null
+        x-nullable: true
+        description: If a refund was processed for this message `refund` will be a non-null number
+      source:
+        type: string
+        example: '14154009186'
+        description: Sender ID for the message
+      destination:
+        type: string
+        example: '+15623158625'
+        description: Destination number for the message in E.164 format
+      country:
+        type: string
+        example: 'US'
+        description: ISO2 code of the country where the destination belongs to
+      content_type:
+        type: string
+        enum: ['text', 'location', 'media']
+        example: text
+        description: |
+          Content type of the message.
+          - Its value will correspond to the key present in the `content`.
+      content:
+        type: object
+        description: |
+          Content to be sent to the destinations.
+          - For channel `sms` only `text` content is supported
+          - Only one of `text`, `location` or `media` can be provided
+        properties:
+          text:
+            type: string
+            example: Hey, Rick. It's Rick.
+            description: |
+              Text content to be sent to destinations.
+              For `sms` channel:
+              - Message can contain non-GSM and unicode characters
+              - A GSM only message with more than 160 characters will be automatically broken
+                into parts each of length 153 for billing purposes
+              - A Non-GSM (and unicode) message with more than 70 characters will be automatically
+                broken into parts each of length 67 for billing purposes
+          location:
+            type: object
+            required: ['latitude', 'longitude', 'label', 'address']
+            description: Location content to be sent to destinations
+            properties:
+              longitude:
+                type: string
+                format: number
+                example: '12.9716'
+                description: Longitude of the location to be sent
+              latitude:
+                type: string
+                format: number
+                example: '77.5946'
+                description: Latitude of the location to be sent
+              label:
+                type: string
+                example: 'Bangalore'
+                description: Label which will be attached as heading to the location
+              address:
+                type: string
+                example: 'Havoc!'
+                description: Address which will be attached to the location
+          media:
+            type: object
+            required: ['url', 'caption', 'type']
+            description: Media content sent to the destination
+            properties:
+              url:
+                type: string
+                example: 'https://media.example.com/file'
+                description: URL to the media file sent to the destination
+              caption:
+                type: string
+                example: your media file
+                description: Caption added to the message containing the media
+              type:
+                type: string
+                enum: ['audio', 'video', 'image', 'document']
+                example: image
+                description: Media type sent to the destination
+      created_time:
+        type: string
+        format: date-time
+        example: '2017-08-04T09:59:29.660Z'
+        description: Timestamp when the message was created
+      sent_time:
+        type: string
+        format: date-time
+        example: '2017-08-04T09:59:29.660Z'
+        description: Timestamp when message was sent to the selected channel
+      delivered_time:
+        type: string
+        format: date-time
+        example: '2017-08-04T09:59:29.660Z'
+        description: Timestamp when the message was delivered to the destination
+      updated_time:
+        type: string
+        format: date-time
+        example: '2017-08-04T09:59:29.660Z'
+        description: |
+          Timestamp when the message status was last updated
+          - If the current status is `read`, then this timestamp also represents
+            read time
+          - If the current status is `undelivered` then this timestamp also represents
+            undelivered time
+      channel:
+        type: string
+        enum: ['sms', 'whatsapp']
+        example: sms
+        description: |
+          Channel used to send the message.
+          Please check [Supported Channels](#section/Supported-Channels) for more details.
+      status:
+        type: string
+        enum:
+          - queued
+          - sent
+          - failed
+          - delivered
+          - read
+          - undelivered
+          - rejected
+        example: delivered
+        description: |
+          Current status of the message. Possible values:
+          - `queued`: Message has been queued in Karix system
+                      (for either `inbound` or `outbound` direction)
+          - `sent`: The `outbound` message has been sent to carriers for delivery
+          - `failed`: In case of `outbound` message, this means that Karix failed
+                      to send the message to a carrier.
+                      In case of `inbound` message, this means that Karix failed
+                      to send the message to its webhook, if configured.
+          - `delivered`: The `outbound` message was delivered to its receiver.
+          - `read`: The outbound message was delivered and read by the the receiver.
+                    Not supported by `sms` channel.
+          - `undelivered`: The `outbound` message falied to be delivered to its receiver.
+          - `rejected`: The `outbound` message was rejected by the chosen carrier.
+      direction:
+        type: string
+        enum:
+          - inbound
+          - outbound
+        example: outbound
+        description: |
+          Direction of the message.
+          - inbound: Message was sent to a number owned by the karix account
+          - outbound: Message was sent to a destination using karix account
+      error:
+        type: object
+        description: |
+          Non-null in case of a failure to send the message.
+        x-nullable: true
+        required: ['code', 'message']
+        properties:
+          code:
+            type: string
+            description: Error code of the failure
+          message:
+            type: string
+            description: Error message corresponding to the error `code`.
+      redact:
+        type: boolean
+        description: |
+          If the message was redacted using redact message API, then `redact` will be `true`.
+      channel_details:
+        type: object
+        description: |
+          Channel specific details of this message.
+          - Only contains details of the channel used to send the message
+        properties:
+          sms:
+            type: object
+            description: Details related to `sms` channel when message is sent over `sms`
+            x-nullable: true
+            required: ['mobile_country_code', 'mobile_network_code', 'rate', 'parts']
+            properties:
+              mobile_country_code:
+                type: string
+                example: "400"
+                description: |
+                  Mobile Country Code of the destination number.
+                  Refer to [Wikipedia: Mobile country code](https://en.wikipedia.org/wiki/Mobile_country_code)
+              mobile_network_code:
+                type: string
+                example: "400"
+                description: |
+                  Mobile Network Code of the destination number.
+                  Refer to [Wikipedia: Mobile country code](https://en.wikipedia.org/wiki/Mobile_country_code)
+              rate:
+                type: string
+                format: number
+                example: '0.0032'
+                description: |
+                  Cost per part of this message.
+                  Refer to [`text`](#/definitions/Message/properties/content/text)
+              parts:
+                type: integer
+                example: 1
+                description: |
+                  Number of parts to the message if the message was too long
+                  Refer to [`text`](#/definitions/Message/properties/text)
+          whatsapp:
+            type: object
+            description: Details related to `whatsapp` channel when message is sent over `whatsapp`
+            x-nullable: true
+            required: ['type', 'platform_fee', 'whatsapp_fee']
+            properties:
+              type:
+                type: string
+                description: |
+                  Message type used to send over whatsapp. Whatsapp supports types:
+                  - `conversation`: Message sent within the free window of whatsapp
+                  - `notification`: Message sent using a whatsapp template
+                  Whatsapp charges differ according to message type
+                enum: ['conversation', 'notification']
+                example: 'conversation'
+              platform_fee:
+                type: string
+                description: |
+                  Fees charged by Karix platform for this message
+                format: number
+                example: '0.0032'
+              whatsapp_fee:
+                type: string
+                description: |
+                  Fees charged by WhatsApp for this message
+                format: number
+                example: '0.0032'
+  EditMessage:
+    type: object
+    properties:
+      redact:
+        type: boolean
+        description: |
+          Set to true to redact the message. This operation cannot be undone.
+
+  CreateWebhook:
+    type: object
+    required:
+      - name
+      - events_url
+    properties:
+      events_url:
+        type: string
+        example: 'https://events.example.com/sms'
+        description: |
+          URL to notify of an inbound message event.
+          - Please read more about [Karix Events](#section/Events-and-Webhooks) structure.
+      name:
+        type: string
+        example: webhook_1
+        description: Display name of the webhook
+  EditWebhook:
+    type: object
+    properties:
+      events_url:
+        type: string
+        example: 'https://events.example.com/sms'
+        description: |
+          URL to notify of an inbound message event.
+          - Please read more about [Karix Events](#section/Events-and-Webhooks) structure.
+      name:
+        type: string
+        example: webhook_1
+        description: Display name of the webhook
+  Webhook:
+    allOf:
+      - $ref: '#/definitions/EditWebhook'
+      - type: object
+        properties:
+          uid:
+            type: string
+            example: 3e4e654c-f4ad-430d-b41e-d71068ecf948
+            description: Unique ID of the webhook
+          created_time:
+            type: string
+            format: date-time
+            example: '2017-08-04T09:59:29.660Z'
+            description: Date when this webhook was created
+          updated_time:
+            type: string
+            format: date-time
+            example: '2017-08-05T09:59:29.660Z'
+            description: Date when this webhook was last updated
+            x-nullable: true
+          account_uid:
+            type: string
+            example: 5a507caf-0769-4914-a7f7-54f5a064b52a
+            description: UID of Account which created this webhook
+
+  PhoneNumber:
+    type: object
+    description: Details of the phone number
+    properties:
+      number:
+        type: string
+        example: 14154009186
+        description: Number with country code
+      number_type:
+        type: string
+        example: mobile
+      region:
+        type: object
+        description: Details about which region this number belongs to
+        properties:
+          country:
+            type: string
+            example: US
+            description: Country ISO of this number
+      service:
+        type: object
+        description: Services available on this number
+        properties:
+          sms:
+            type: boolean
+            example: true
+            description: '`true` if sms service is available on this number'
+      rate:
+        type: object
+        properties:
+          inbound_sms:
+            type: string
+            format: number
+            x-nullable: true
+            example: '0.03'
+            description: Rate per part of an incoming message
+          rental:
+            type: string
+            format: number
+            example: '0.8'
+            description: |
+              Monthly rental rate for this number.
+              When the number is bought a prorated rental rate is deducted from balance
+          setup:
+            type: string
+            format: number
+            example: '0.8'
+            description: One time setup fees for this number
+  RentNumber:
+    type: object
+    required:
+      - number
+      - alias
+    properties:
+      number:
+        type: string
+        example: 14154009186
+      webhook_uid:
+        type: string
+        example: f6bcc10c-09c0-4bd5-9d58-0089fe51c3bb
+      alias:
+        type: string
+        example: Number 1
+  EditAccountNumber:
+    type: object
+    properties:
+      webhook_uid:
+        type: string
+        example: f6bcc10c-09c0-4bd5-9d58-0089fe51c3bb
+        x-nullable: true
+        description: |
+          Webhook attached to this phone number which is triggered on an event
+          like incoming message.
+      alias:
+        type: string
+        example: Number 1
+        description: Display alias of this number for the account
+  AccountNumber:
+    allOf:
+      - $ref: '#/definitions/EditAccountNumber'
+      - type: object
+        properties:
+          account_uid:
+            type: string
+            example: 8bf925cd-1042-42b2-adc3-de43b64b9b02
+            description: Unique ID of the account which rented this number
+          number_details:
+            $ref: '#/definitions/PhoneNumber'
+          date_rented:
+            type: string
+            format: date-time
+            example: '2017-08-04T09:59:29.660Z'
+            description: Timestamp when this number was rented
+
+  WhatsappAccount:
+    type: object
+    required: ['uid', 'name', 'karix_account_uid']
+    properties:
+      uid:
+        type: string
+        example: 3e4e654c-f4ad-430d-b41e-d71068ecf948
+        description: Unique ID of the Whatsapp account
+      name:
+        type: string
+        description: Name of the Whatsapp Account
+        example: ACME
+      karix_account_uid:
+        type: string
+        description: Unique ID of the Karix Subaccount this Whatsapp Account is attached to.
+        example: 3e4e654c-f4ad-430d-b41e-d71068ecf948
+
+  CreateWhatsappTemplate:
+    type: object
+    required: ['category', 'whatsapp_account_uid', 'name', 'language_code', 'attachment', 'text']
+    properties:
+      category:
+        type: string
+        description: Category of the template. Choose the appropriate category for Whatsapp to approve the template.
+        enum: ['account_update', 'payment_update', 'personal_finance_update', 'shipping_update', 'reservation_update', 'issue_resolution', 'appointment_update', 'transportation_update', 'ticket_update', 'alert_update', 'auto_reply']
+      whatsapp_account_uid:
+        type: string
+        description: |
+          Unique ID of the whatsapp account to which the template has to be attacheds
+        example: 3e4e654c-f4ad-430d-b41e-d71068ecf948
+      name:
+        type: string
+        description: The name of the template. This must be unique for the whatsapp account.
+        example: template_1
+      language_code:
+        type: string
+        description: |
+          Language code for the template. Please refer to Whatsapp Documentation for list of approved languages: https://developers.facebook.com/docs/whatsapp/business-management-api/message-templates
+      attachment:
+        type: string
+        description: Media attachment for the template if needed. For a text-only template this value should be null.
+        enum: ['image', 'document', 'video']
+        x-nullable: true
+      text:
+        type: string
+        description: |
+          Templated text or media caption for the template.
+          Please note that a variable is represented using the placeholder {{*}} which is different from Whatsapp placeholder.
+          Using Whatsapp placeholders like {{1}}, {{2}} etc will return an error.
+        example: Hi {{*}}, your OTP is {{*}}
+  WhatsappTemplate:
+    type: object
+    required: [
+      'uid', 'status', 'category', 'whatsapp_account_uid', 'name',
+      'language_code', 'attachment', 'text', 'rejected_reason']
+    properties:
+      uid:
+        type: string
+        description: Unique ID of the Whatsapp template.
+        example: 3e4e654c-f4ad-430d-b41e-d71068ecf948
+      status:
+        type: string
+        description: |
+          Approval status of whatsapp template.
+          Newly created templates are in pending state until they are approved or rejected by Whatsapp.
+        enum: ['pending', 'rejected', 'approved']
+      category:
+        type: string
+        description: Category of the template.
+        enum: ['account_update', 'payment_update', 'personal_finance_update', 'shipping_update', 'reservation_update', 'issue_resolution', 'appointment_update', 'transportation_update', 'ticket_update', 'alert_update', 'auto_reply']
+      whatsapp_account_uid:
+        type: string
+        description: Unique ID of the whatsapp account which owns this template
+        example: 3e4e654c-f4ad-430d-b41e-d71068ecf948
+      name:
+        type: string
+        description: The name of the template.
+        example: template_1
+      language_code:
+        type: string
+        description: Language code for the template.
+      attachment:
+        type: string
+        description: Media attachment for the template if exists. If no media is attached then the value is null.
+        enum: ['image', 'document', 'video']
+        x-nullable: true
+      text:
+        type: string
+        description: |
+          Templated text or media caption for the template.
+          Please note that a variable is represented using the placeholder {{*}} which is different from Whatsapp placeholder.
+        example: Hi {{*}}, your OTP is {{*}}
+      rejected_reason:
+        type: string
+        description: |
+          Reason given by whatsapp for rejection of the template.
+          This field is non-null only for rejected templates.
+        x-nullable: true
+  WhatsappProfilePhoto:
+    type: object
+    required: ['number', 'url']
+    properties:
+      number:
+        type: string
+        description: Whatsapp enabled number from your rented numbers list
+        example: 14154009186
+      url:
+        type: string
+        example: 'https://pps.whatsapp.net/v/profile.jpg'
+        description: URL generated by Whatsapp for the uploaded profile photo
+  WhatsappProfileBusiness:
+    type: object
+    required: ['number', 'email', 'address', 'description', 'vertical', 'websites']
+    properties:
+      number:
+        type: string
+        description: Whatsapp enabled number from your rented numbers list
+        example: 14154009186
+      email:
+        type: string
+        description: Business Email address of the Whatsapp profile
+        example: support@karix.io
+      address:
+        type: string
+        description: Business Address of the Whatsapp profile
+        example: 7th Block, Koramangala, Bengaluru, Karnataka 560095
+      description:
+        type: string
+        description: Business description of the Whatsapp profile
+        example: Driving Mobile Engagement
+      vertical:
+        type: string
+        description: |
+          Business vertical.
+          This value should be a valid vertical according to whatsapp documentation: https://developers.facebook.com/docs/whatsapp/api/settings/business-profile/
+      websites:
+        type: array
+        items:
+          type: string
+        description: List of websites for the Business
+        example: ['https://karix.io', 'https://cloud.karix.io']
+  EditWhatsappProfileBusiness:
+    type: object
+    properties:
+      email:
+        type: string
+        description: Business Email address of the Whatsapp profile
+        example: support@karix.io
+      address:
+        type: string
+        description: Business Address of the Whatsapp profile
+        example: 7th Block, Koramangala, Bengaluru, Karnataka 560095
+      description:
+        type: string
+        description: Business description of the Whatsapp profile
+        example: Driving Mobile Engagement
+      vertical:
+        type: string
+        description: |
+          Business vertical.
+          This value should be a valid vertical according to whatsapp documentation: https://developers.facebook.com/docs/whatsapp/api/settings/business-profile/
+      websites:
+        type: array
+        items:
+          type: string
+        description: List of websites for the Business
+        example: ['https://karix.io', 'https://cloud.karix.io']
+  WhatsappProfileAbout:
+    type: object
+    required: ['number', 'text']
+    properties:
+      number:
+        type: string
+        description: Whatsapp enabled number from your rented numbers list
+        example: 14154009186
+      text:
+        type: string
+        maxLength: 139
+        description: The Whatsapp Business about text or status message
+        example: Hey there! I am using WhatsApp
+  EditWhatsappProfileAbout:
+    type: object
+    properties:
+      text:
+        type: string
+        maxLength: 139
+        description: The Whatsapp Business about text or status message
+        example: Hey there! I am using WhatsApp
+
+  # DocumentResponse:
+  #   type: object
+  #   properties:
+  #     document_id:
+  #       type: string
+  #       example: 8265e5b5-915e-4950-92e6-a3f35d66082f
+  #     name:
+  #       type: string
+  #       example: Driving Licence
+  #     note:
+  #       type: string
+  #       example: Personal driving licence
+  #     document_url:
+  #       type: string
+  #       example: https://documents.example.com/8265e5b5-915e-4950-92e6-a3f35d66082f
+
+  # DocumentPatch:
+  #   type: object
+  #   properties:
+  #     name:
+  #       type: string
+  #       example: Driving Licence
+  #     note:
+  #       type: string
+  #       example: Personal Driving Licence
+
+  MetaResponse:
+    type: object
+    properties:
+      request_uuid:
+        type: string
+        example: e54b13f5-0831-40f1-959f-e9c5a8ff2957
+        description: Unique request ID for debugging purposes
+
+  MetaResponseWithBalance:
+    allOf:
+      - $ref: '#/definitions/MetaResponse'
+      - type: object
+        properties:
+          credits_charged:
+            type: string
+            format: number
+            example: '0.0032'
+          available_credits:
+            type: string
+            format: number
+            example: '43.0047'
+
+  ObjectMetaResponse:
+    allOf:
+      - $ref: '#/definitions/MetaResponse'
+
+  ArrayMetaResponse:
+    allOf:
+      - $ref: '#/definitions/MetaResponse'
+      - type: object
+        properties:
+          next:
+            type: string
+            x-nullable: true
+            example: https://api.karix.co/<resource>/?limit=10&offset=10
+            description: |
+              URL to fetch the next page of the object list
+              - `null` if there is no next page
+          previous:
+            type: string
+            x-nullable: true
+            example: null
+            description: |
+              URL to fetch the previous page of the object list
+              - `null` if there is no previous page
+          total:
+            type: integer
+            example: 1
+            description: |
+              Total number of objects in all pages
